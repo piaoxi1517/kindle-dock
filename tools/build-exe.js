@@ -15,7 +15,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const BUILD = path.join(ROOT, 'build');
 const DIST = path.join(ROOT, 'dist');
-const EXE_NAME = 'Kindle投书.exe';
+const EXE_NAME = process.env.EXE_NAME || 'Kindle投书.exe';
 const FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
 
 const step = (msg) => console.log('\n▸ ' + msg);

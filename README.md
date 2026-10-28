@@ -42,6 +42,13 @@ npm run exe
 
 产物：`dist/Kindle投书.exe`（约 84 MB）+ `dist/data/config.json` + `dist/使用说明.txt`
 
+产物文件名可以用 `EXE_NAME` 覆盖，比如发版时用 ASCII 名：
+
+```bash
+EXE_NAME=Kindle-Dock.exe npm run exe   # bash
+set EXE_NAME=Kindle-Dock.exe && npm run exe   # cmd
+```
+
 双击 exe 即用，**目标电脑不需要装 Node**。整个 `dist/` 文件夹拷到任何 Windows x64 上都能跑。
 
 **原理**（Node SEA，Single Executable Application）：
