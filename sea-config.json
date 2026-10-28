@@ -1,0 +1,8 @@
+{
+  "main": "build/app.cjs",
+  "output": "build/sea-prep.blob",
+  "disableExperimentalSEAWarning": true,
+  "assets": {
+    "index.html": "public/index.html"
+  }
+}

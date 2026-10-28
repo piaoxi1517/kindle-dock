@@ -1,0 +1,19 @@
+{
+  "name": "kindle-dock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Drag-and-drop book transfer to jailbroken Kindle over SFTP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "exe": "node tools/build-exe.js",
+    "test": "node test/e2e.js && node test/delete-test.js && node test/queue-test.js"
+  },
+  "dependencies": {
+    "ssh2": "^1.17.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
+  }
+}

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kindle 投书</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --card:#ffffff; --line:#e7e5e4; --line2:#d6d3d1;
+    --ink:#1c1917; --ink2:#57534e; --muted:#a8a29e;
+    --accent:#2563eb; --accent-soft:#eff6ff;
+    --ok:#15803d; --ok-soft:#f0fdf4; --err:#b91c1c; --err-soft:#fef2f2;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:400 14px/1.6 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit; cursor:pointer;}
+  code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px;}
+
+  .header{
+    display:flex; align-items:center; gap:12px;
+    height:56px; padding:0 20px; background:var(--card);
+    border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20;
+  }
+  .brand{display:flex; align-items:center; gap:8px; font-weight:500; font-size:15px;}
+  .brand svg{width:20px; height:20px; color:var(--ink);}
+  .spacer{flex:1;}
+
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    height:26px; padding:0 10px; border-radius:99px;
+    background:#f5f5f4; color:var(--ink2); font-size:12px; white-space:nowrap;
+    border:1px solid var(--line);
+  }
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);}
+  .pill.ok{background:var(--ok-soft); border-color:#bbf7d0; color:var(--ok);}
+  .pill.ok .dot{background:var(--ok);}
+  .pill.err{background:var(--err-soft); border-color:#fecaca; color:var(--err);}
+  .pill.err .dot{background:var(--err);}
+  .pill.busy .dot{background:var(--accent); animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .btn{
+    height:32px; padding:0 12px; border-radius:8px; border:1px solid var(--line2);
+    background:var(--card); color:var(--ink); font-size:13px;
+    transition:.15s;
+  }
+  .btn:hover{border-color:#a8a29e; background:#fafaf9;}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn.primary:hover{background:#1d4ed8; border-color:#1d4ed8;}
+  .btn.ghost{border-color:transparent; background:transparent; color:var(--ink2);}
+  .btn.ghost:hover{background:#f5f5f4;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+
+  .wrap{max-width:840px; margin:0 auto; padding:0 20px 60px;}
+
+  .tabs{display:flex; gap:4px; margin:20px 0 16px;}
+  .tab{
+    height:34px; padding:0 14px; border-radius:8px; border:1px solid transparent;
+    background:transparent; color:var(--ink2); font-size:13px;
+  }
+  .tab.active{background:var(--card); border-color:var(--line); color:var(--ink); font-weight:500;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);}
+
+  /* 主拖拽区 */
+  .dz{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; padding:44px 28px; text-align:center;
+    border:1px dashed var(--line2); border-radius:var(--radius);
+    background:var(--card); cursor:pointer; transition:.18s;
+  }
+  .dz:hover{border-color:#93c5fd; background:#fcfdff;}
+  .dz.over{border-color:var(--accent); background:var(--accent-soft); border-style:solid;}
+  .dz-icon{
+    width:44px; height:44px; border-radius:50%; background:#f4f4f3; color:#78716c;
+    display:flex; align-items:center; justify-content:center; margin-bottom:2px;
+  }
+  .dz-icon svg{width:21px; height:21px;}
+  .dz.over .dz-icon{background:#dbeafe; color:var(--accent);}
+  .dz-title{margin:0; font-size:14px; font-weight:500; color:var(--ink);}
+  .dz-title .or{color:var(--muted); font-weight:400; margin:0 2px;}
+  .dz-title a{color:var(--accent); text-decoration:none;}
+  .dz-title a:hover{text-decoration:underline;}
+  .dz-sub{margin:0; font-size:12px; color:#78716c;}
+  .dz-target{margin-top:4px; font-size:12px; color:var(--muted);}
+  .dz-target code{color:var(--ink2); background:#f5f5f4; padding:1px 5px; border-radius:4px;}
+
+  /* 队列 */
+  .queue-head{
+    display:flex; align-items:center; gap:8px; margin:18px 2px 8px;
+    font-size:12px; color:var(--ink2);
+  }
+  .queue-head .btn{height:26px; padding:0 8px; font-size:12px;}
+  .queue{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
+  .qi{
+    position:relative; display:flex; align-items:center; gap:12px;
+    padding:11px 14px 13px; border:1px solid var(--line); border-radius:10px;
+    background:var(--card); transition:border-color .15s, background .15s;
+  }
+  .qi-body{flex:1; min-width:0;}
+  .qi-name{
+    font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .qi-meta{font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; margin-top:2px;}
+  .qi-state{
+    font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;
+    white-space:nowrap; min-width:52px; text-align:right;
+  }
+  .qi-x{
+    border:0; background:transparent; color:var(--muted); font-size:12px;
+    padding:2px 4px; border-radius:6px; opacity:0; transition:.15s;
+  }
+  .qi:hover .qi-x{opacity:1;}
+  .qi-x:hover{background:#f5f5f4; color:var(--err);}
+  .qi .bar{
+    position:absolute; left:14px; right:14px; bottom:6px; height:2px;
+    background:#f0efed; border-radius:2px; overflow:hidden;
+  }
+  .qi .bar i{
+    display:block; height:100%; width:0; background:var(--accent);
+    transition:width .18s ease-out;
+  }
+  .qi.active{border-color:#bfdbfe; background:#fcfdff;}
+  .qi.active .qi-state{color:var(--accent);}
+  .qi.ok .qi-state{color:var(--ok);}
+  .qi.ok .bar i{background:var(--ok);}
+  .qi.err{border-color:#fecaca; background:#fffbfb;}
+  .qi.err .qi-state{color:var(--err);}
+  .qi.err .bar i{background:var(--err);}
+  .qi.cancel{opacity:.55;}
+  .qi.cancel .qi-name{text-decoration:line-through;}
+  .qi.pending .bar{display:none;}
+  .qi.cancel .bar,.qi.ok .bar{opacity:.35;}
+
+  /* 书架 */
+  .shelf-head{display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line);}
+  .shelf-head .path{font-size:12px; color:var(--muted);}
+  .shelf-head .path code{color:var(--ink2);}
+  .sdr-toggle{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink2); cursor:pointer; user-select:none; margin-right:4px;}
+  .sdr-toggle input{width:auto; height:auto; margin:0; accent-color:var(--accent);}
+  .row.is-sdr .fname{color:var(--muted);}
+  .rows{list-style:none; margin:0; padding:0;}
+  .row{
+    display:flex; align-items:center; gap:12px; padding:11px 14px;
+    border-bottom:1px solid #f5f5f4;
+  }
+  .row:last-child{border-bottom:0;}
+  .row .fname{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px;}
+  .row .fsize,.row .fdate{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .row .fdate{width:96px; text-align:right;}
+  .row .fsize{width:72px; text-align:right;}
+  .row .acts{display:flex; gap:2px; opacity:0; transition:.15s;}
+  .row:hover .acts{opacity:1;}
+  .empty{padding:48px 20px; text-align:center; color:var(--muted); font-size:13px;}
+
+  /* 弹层 */
+  .mask{
+    position:fixed; inset:0; background:rgba(28,25,23,.32);
+    display:none; align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .mask.show{display:flex;}
+  .modal{
+    width:100%; max-width:480px; background:var(--card); border-radius:var(--radius);
+    border:1px solid var(--line); max-height:90vh; overflow:auto;
+  }
+  .modal-head{padding:16px 18px; border-bottom:1px solid var(--line); font-weight:500;}
+  .modal-body{padding:16px 18px; display:flex; flex-direction:column; gap:14px;}
+  .modal-foot{padding:14px 18px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end;}
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:12px; color:var(--ink2);}
+  .field .hint{font-size:11px; color:var(--muted);}
+  .field input,.field select,.field textarea{
+    width:100%; height:34px; padding:0 10px; font:inherit; font-size:13px;
+    border:1px solid var(--line2); border-radius:8px; background:var(--card); color:var(--ink);
+    outline:none; transition:.15s;
+  }
+  .field textarea{height:88px; padding:8px 10px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:11px; line-height:1.5;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+  .grid2{display:grid; grid-template-columns:1fr 110px; gap:10px;}
+  .result{
+    font-size:12px; padding:10px 12px; border-radius:8px; display:none;
+    white-space:pre-wrap; line-height:1.55;
+  }
+  .result.show{display:block;}
+  .result.ok{background:var(--ok-soft); color:var(--ok); border:1px solid #bbf7d0;}
+  .result.err{background:var(--err-soft); color:var(--err); border:1px solid #fecaca;}
+
+  .toast{
+    position:fixed; left:50%; bottom:28px; transform:translate(-50%,12px);
+    background:#1c1917; color:#fff; font-size:13px; padding:9px 16px; border-radius:9px;
+    opacity:0; pointer-events:none; transition:.2s; z-index:60; max-width:70vw;
+  }
+  .toast.show{opacity:1; transform:translate(-50%,0);}
+  .toast.err{background:var(--err);}
+
+  @media (max-width:640px){
+    .row .fdate{display:none;}
+    .dz{padding:34px 18px;}
+    .row .acts{opacity:1;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 3.5h7.5L19 8v11.5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/>
+      <path d="M14.5 3.5V8H19"/><path d="M9 12.5h6M9 15.5h4"/>
+    </svg>
+    <span>Kindle 投书</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="pill" id="status"><i class="dot"></i><span>未连接</span></div>
+  <button class="btn" id="btnSettings">设置</button>
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" data-tab="upload">上传</button>
+    <button class="tab" data-tab="shelf">书架</button>
+  </div>
+
+  <section id="view-upload">
+    <div class="dz" id="dz">
+      <div class="dz-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M5 16v2.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V16"/>
+        </svg>
+      </div>
+      <p class="dz-title">拖拽文件到此处<span class="or">或</span><a href="#" id="pick">选择文件</a></p>
+      <p class="dz-sub">支持 txt / pdf / epub / doc / docx / mobi / azw3 / md 等格式，上传完成后可在「书架」中查看</p>
+      <p class="dz-target">目标目录：<code id="dzTarget">/mnt/us/documents</code></p>
+      <input type="file" id="fileInput" multiple hidden>
+    </div>
+    <div class="queue-head" id="queueHead" hidden>
+      <span id="queueSummary"></span>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="btnClearDone">清除已完成</button>
+      <button class="btn ghost" id="btnCancelAll">全部取消</button>
+    </div>
+    <ul class="queue" id="queue"></ul>
+  </section>
+
+  <section id="view-shelf" hidden>
+    <div class="card">
+      <div class="shelf-head">
+        <span class="path">目录 <code id="shelfDir">/mnt/us/documents</code></span>
+        <div class="spacer"></div>
+        <label class="sdr-toggle"><input type="checkbox" id="showSdr"><span>显示 .sdr</span></label>
+        <button class="btn ghost" id="btnReload">刷新</button>
+      </div>
+      <ul class="rows" id="rows"></ul>
+    </div>
+  </section>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="modal-head">Kindle 连接设置</div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field">
+          <label>设备 IP</label>
+          <input id="sHost" placeholder="192.168.1.50" autocomplete="off">
+          <span class="hint">在 KOReader 启动 SSH 服务器后的弹窗里能看到</span>
+        </div>
+        <div class="field">
+          <label>端口</label>
+          <input id="sPort" value="2222" inputmode="numeric">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>用户名</label>
+          <input id="sUser" value="root" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>登录方式</label>
+          <select id="sAuth">
+            <option value="none">空密码（推荐）</option>
+            <option value="password">密码</option>
+            <option value="key">私钥</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="fPass" hidden>
+        <label>密码</label>
+        <input id="sPass" type="password" autocomplete="new-password">
+      </div>
+      <div class="field" id="fKey" hidden>
+        <label>私钥内容</label>
+        <textarea id="sKey" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea>
+        <span class="hint">粘贴完整私钥；公钥需已写入 /mnt/us/koreader/settings/SSH/authorized_keys</span>
+      </div>
+      <div class="field">
+        <label>远程目录</label>
+        <input id="sDir" value="/mnt/us/documents" autocomplete="off">
+        <span class="hint">/mnt/us/documents 下的书，Kindle 原生阅读器也能看到</span>
+      </div>
+      <div class="result" id="testResult"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="btnTest">测试连接</button>
+      <button class="btn primary" id="btnSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { config: null, uploading: false };
+  var EXT_ICON = { epub: 'EPUB', pdf: 'PDF', mobi: 'MOBI', azw3: 'AZW3', azw: 'AZW', txt: 'TXT', doc: 'DOC', docx: 'DOCX', md: 'MD', zip: 'ZIP', cbz: 'CBZ' };
+
+  /* ---------- 工具 ---------- */
+  function fmtSize(n) {
+    if (n == null) return '—';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(2) + ' GB';
+  }
+  function fmtDate(ms) {
+    if (!ms) return '';
+    var d = new Date(ms), p = function (x) { return x < 10 ? '0' + x : '' + x; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  var toastTimer;
+  function toast(msg, isErr) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = 'toast'; }, 3200);
+  }
+  function setStatus(kind, text) {
+    var el = $('status');
+    el.className = 'pill' + (kind ? ' ' + kind : '');
+    el.querySelector('span').textContent = text;
+  }
+
+  /* ---------- 配置 ---------- */
+  function fillForm(cfg) {
+    $('sHost').value = cfg.host || '';
+    $('sPort').value = cfg.port || 2222;
+    $('sUser').value = cfg.username || 'root';
+    $('sDir').value = cfg.remoteDir || '/mnt/us/documents';
+    var mode = cfg.privateKey ? 'key' : (cfg.password ? 'password' : 'none');
+    $('sAuth').value = mode;
+    $('sPass').value = cfg.password || '';
+    $('sKey').value = cfg.privateKey || '';
+    syncAuthFields();
+    if (cfg.remoteDir) $('dzTarget').textContent = cfg.remoteDir;
+    if (cfg.remoteDir) $('shelfDir').textContent = cfg.remoteDir;
+  }
+  function syncAuthFields() {
+    var m = $('sAuth').value;
+    $('fPass').hidden = m !== 'password';
+    $('fKey').hidden = m !== 'key';
+  }
+  function collectForm() {
+    var mode = $('sAuth').value;
+    var port = parseInt($('sPort').value, 10);
+    return {
+      host: $('sHost').value.trim(),
+      port: isNaN(port) ? 2222 : port,
+      username: $('sUser').value.trim() || 'root',
+      password: mode === 'password' ? $('sPass').value : '',
+      privateKey: mode === 'key' ? $('sKey').value.trim() : '',
+      remoteDir: $('sDir').value.trim() || '/mnt/us/documents'
+    };
+  }
+  function showResult(ok, text) {
+    var r = $('testResult');
+    r.className = 'result show ' + (ok ? 'ok' : 'err');
+    r.textContent = text;
+  }
+
+  async function loadConfig() {
+    try {
+      var r = await fetch('/api/config');
+      state.config = await r.json();
+      fillForm(state.config);
+      return state.config;
+    } catch (e) {
+      toast('本地服务没响应，请确认 server.js 还在运行', true);
+    }
+  }
+
+  async function saveConfig() {
+    var cfg = collectForm();
+    if (!cfg.host) { showResult(false, '请先填设备 IP'); return null; }
+    var r = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cfg)
+    });
+    state.config = await r.json();
+    fillForm(state.config);
+    return state.config;
+  }
+
+  async function testConnection() {
+    if (!state.config || !state.config.configured) { showResult(false, '还没保存连接信息，先点「保存」'); return; }
+    setStatus('busy', '连接中');
+    var r = await fetch('/api/test', { method: 'POST' });
+    var d = await r.json();
+    if (d.ok) {
+      setStatus('ok', '已连接');
+      showResult(true, '连接成功 · ' + d.ms + ' ms · 目录内有 ' + d.count + ' 个条目' + (d.warning ? '\n' + d.warning : ''));
+      toast('已连上 Kindle');
+    } else {
+      setStatus('err', '连接失败');
+      showResult(false, d.reason + (d.raw ? '\n（原始信息：' + d.raw + '）' : ''));
+    }
+  }
+
+  /* ---------- 上传队列 ---------- */
+  var up = { seq: 0, items: [], active: null, busyToast: false };
+
+  function updateHead() {
+    var head = $('queueHead');
+    if (!up.items.length) { head.hidden = true; return; }
+    head.hidden = false;
+    var pending = 0, active = 0, ok = 0, bad = 0;
+    up.items.forEach(function (i) {
+      if (i.status === 'pending') pending++;
+      else if (i.status === 'active') active++;
+      else if (i.status === 'ok') ok++;
+      else if (i.status === 'err') bad++;
+    });
+    var parts = [];
+    if (pending + active) parts.push('待传 ' + (pending + active));
+    if (ok) parts.push('完成 ' + ok);
+    if (bad) parts.push('失败 ' + bad);
+    $('queueSummary').textContent = '共 ' + up.items.length + ' 个文件' + (parts.length ? ' · ' + parts.join(' · ') : '');
+    $('btnClearDone').hidden = !(ok || bad);
+    $('btnCancelAll').hidden = !(pending || active);
+  }
+
+  function makeItem(file) {
+    var li = document.createElement('li');
+    li.className = 'qi pending';
+    li.innerHTML =
+      '<div class="qi-body">' +
+        '<div class="qi-name"></div>' +
+        '<div class="qi-meta"></div>' +
+      '</div>' +
+      '<span class="qi-state">排队中</span>' +
+      '<button class="qi-x" type="button">取消</button>' +
+      '<div class="bar"><i></i></div>';
+
+    var nameEl = li.querySelector('.qi-name');
+    var metaEl = li.querySelector('.qi-meta');
+    var stateEl = li.querySelector('.qi-state');
+    var barEl = li.querySelector('.bar i');
+    nameEl.textContent = file.name;
+    nameEl.title = file.name;
+    metaEl.textContent = fmtSize(file.size);
+
+    var item = {
+      file: file,
+      el: li,
+      status: 'pending',
+      abort: null,
+      set: function (cls, state, meta) {
+        item.status = cls;
+        li.className = 'qi ' + cls;
+        stateEl.textContent = state;
+        if (meta != null) metaEl.textContent = meta;
+      },
+      progress: function (p) {
+        var pct = Math.round(p * 100);
+        barEl.style.width = pct + '%';
+        stateEl.textContent = pct + '%';
+      },
+      strip: function () {
+        var x = li.querySelector('.qi-x');
+        if (x) x.remove();
+      }
+    };
+
+    li.querySelector('.qi-x').addEventListener('click', function (e) {
+      e.stopPropagation();
+      cancelOne(item);
+    });
+
+    $('queue').appendChild(li);
+    return item;
+  }
+
+  function cancelOne(item) {
+    if (item.status === 'active' && item.abort) { item.abort(); return; }
+    if (item.status === 'pending') {
+      item.set('cancel', '已取消');
+      item.strip();
+      updateHead();
+    }
+  }
+
+  function uploadOne(item) {
+    return new Promise(function (resolve) {
+      var xhr = new XMLHttpRequest();
+      var settled = false;
+      var finish = function (r) { if (!settled) { settled = true; resolve(r); } };
+
+      item.abort = function () {
+        if (settled) return;
+        try { xhr.abort(); } catch (e) {}
+        item.set('cancel', '已取消', fmtSize(item.file.size) + ' · 设备上的残缺文件会被清理');
+        item.strip();
+        finish('cancel');
+      };
+
+      xhr.open('PUT', '/api/upload?name=' + encodeURIComponent(item.file.name));
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable && !settled) item.progress(e.loaded / e.total);
+      };
+      xhr.onload = function () {
+        var d = {};
+        try { d = JSON.parse(xhr.responseText); } catch (e) {}
+        if (d.ok) {
+          item.set('ok', '已完成', fmtSize(d.size) + ' · ' + (d.ms / 1000).toFixed(1) + 's');
+          item.el.querySelector('.bar i').style.width = '100%';
+        } else if (d.aborted) {
+          item.set('cancel', '已取消', '设备上的残缺文件已清理');
+        } else {
+          item.set('err', '失败', d.reason || '上传失败');
+          item.el.title = d.reason || '';
+        }
+        item.strip();
+        finish(d.ok ? 'ok' : 'err');
+      };
+      xhr.onerror = function () {
+        item.set('err', '失败', '网络中断，Kindle 可能休眠断网');
+        item.strip();
+        finish('err');
+      };
+      xhr.send(item.file);
+    });
+  }
+
+  function nextPending() {
+    for (var i = 0; i < up.items.length; i++) {
+      if (up.items[i].status === 'pending') return up.items[i];
+    }
+    return null;
+  }
+
+  async function pump() {
+    if (up.active) return;
+    var next = nextPending();
+    if (!next) {
+      updateHead();
+      if (up.busyToast) {
+        up.busyToast = false;
+        var ok = 0, bad = 0;
+        up.items.forEach(function (i) {
+          if (i.status === 'ok') ok++;
+          if (i.status === 'err') bad++;
+        });
+        var msg = [];
+        if (ok) msg.push(ok + ' 个已传完');
+        if (bad) msg.push(bad + ' 个失败');
+        if (msg.length) toast(msg.join('，') + (ok ? ' · 记得在 KOReader 里刷新目录' : ''), bad > 0 && ok === 0);
+        if (ok && !$('view-shelf').hidden) loadShelf();
+      }
+      return;
+    }
+    up.busyToast = true;
+    up.active = next;
+    next.set('active', '0%');
+    updateHead();
+    await uploadOne(next);
+    up.active = null;
+    updateHead();
+    pump();
+  }
+
+  function handleFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList);
+    if (!files.length) return;
+    if (!state.config || !state.config.configured) {
+      openModal();
+      toast('先填好 Kindle 的连接信息', true);
+      return;
+    }
+    // 丢掉上一批已结束的条目，保持列表干净
+    up.items = up.items.filter(function (i) {
+      if (i.status === 'ok' || i.status === 'err' || i.status === 'cancel') { i.el.remove(); return false; }
+      return true;
+    });
+    // 一次性全部入队，先让用户看到全部文件
+    files.forEach(function (f) { up.items.push(makeItem(f)); });
+    updateHead();
+    toast('已加入 ' + files.length + ' 个文件，开始上传');
+    pump();
+  }
+
+  /* ---------- 书架 ---------- */
+  function reloadShelf() { loadShelf(); }
+
+  async function loadShelf() {
+    var rows = $('rows');
+    rows.innerHTML = '<li class="empty">读取中…</li>';
+    try {
+      var r = await fetch('/api/list');
+      var d = await r.json();
+      if (!d.ok) {
+        rows.innerHTML = '';
+        var li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = d.reason;
+        rows.appendChild(li);
+        return;
+      }
+      $('shelfDir').textContent = d.dir;
+      if (!d.items.length) { rows.innerHTML = '<li class="empty">这个目录还是空的，先在上面拖一本书进来</li>'; return; }
+      var showSdr = $('showSdr').checked;
+      var list = d.items.filter(function (it) { return showSdr || !/\.sdr$/i.test(it.name); });
+      if (!list.length) {
+        rows.innerHTML = '<li class="empty">这里只有阅读进度数据（.sdr），勾选右上角「显示 .sdr」可查看</li>';
+        return;
+      }
+      rows.innerHTML = '';
+      list.forEach(function (it) {
+        var isSdr = /\.sdr$/i.test(it.name);
+        var li = document.createElement('li');
+        li.className = 'row' + (isSdr ? ' is-sdr' : '');
+        var badge = EXT_ICON[(it.name.split('.').pop() || '').toLowerCase()] || 'FILE';
+        var full = d.dir.replace(/\/+$/, '') + '/' + it.name;
+        li.innerHTML =
+          '<span class="fsize">' + (it.isDir ? '目录' : fmtSize(it.size)) + '</span>' +
+          '<span class="fname"></span>' +
+          '<span class="fdate">' + fmtDate(it.mtime) + '</span>' +
+          '<span class="acts"></span>';
+        li.querySelector('.fname').textContent = it.name;
+        li.querySelector('.fname').title = badge + ' · ' + it.name;
+        var acts = li.querySelector('.acts');
+        if (!it.isDir) {
+          var a = document.createElement('a');
+          a.className = 'btn ghost';
+          a.textContent = '下载';
+          a.href = '/api/file?path=' + encodeURIComponent(full);
+          a.style.textDecoration = 'none';
+          a.style.display = 'inline-flex';
+          a.style.alignItems = 'center';
+          acts.appendChild(a);
+        }
+        var del = document.createElement('button');
+        del.className = 'btn ghost';
+        del.textContent = '删除';
+        del.onclick = function () {
+          var msg;
+          if (isSdr) {
+            msg = '「' + it.name + '」是 KOReader 的阅读进度数据。\n' +
+                  '删除后这本书的阅读位置、书签、笔记会一起丢失（书本身还在）。\n\n确定删除？';
+          } else if (it.isDir) {
+            msg = '「' + it.name + '」是一个文件夹，删除会连同里面的所有文件一起清空。\n\n确定删除？';
+          } else {
+            msg = '从 Kindle 上删除文件「' + it.name + '」？';
+          }
+          if (!confirm(msg)) return;
+          del.disabled = true;
+          fetch('/api/file?path=' + encodeURIComponent(full), { method: 'DELETE' })
+            .then(function (x) { return x.json(); })
+            .then(function (res) {
+              if (res.ok) {
+                li.remove();
+                toast(res.removed > 1 ? '已删除（含 ' + res.removed + ' 项）' : '已删除');
+              } else {
+                del.disabled = false;
+                toast(res.reason || '删除失败', true);
+              }
+            })
+            .catch(function (e) { del.disabled = false; toast('删除失败：' + e.message, true); });
+        };
+        acts.appendChild(del);
+        rows.appendChild(li);
+      });
+    } catch (e) {
+      rows.innerHTML = '<li class="empty">读取失败：' + e.message + '</li>';
+    }
+  }
+
+  /* ---------- 弹层 ---------- */
+  function openModal() { $('mask').classList.add('show'); }
+  function closeModal() { $('mask').classList.remove('show'); }
+
+  /* ---------- 事件绑定 ---------- */
+  $('sAuth').addEventListener('change', syncAuthFields);
+  $('btnSettings').addEventListener('click', openModal);
+  $('mask').addEventListener('click', function (e) { if (e.target === $('mask')) closeModal(); });
+  $('btnSave').addEventListener('click', async function () {
+    var cfg = await saveConfig();
+    if (cfg) { closeModal(); toast('已保存'); testConnection(); }
+  });
+  $('btnTest').addEventListener('click', async function () {
+    var cfg = await saveConfig();
+    if (cfg) testConnection();
+  });
+
+  $('dz').addEventListener('click', function (e) {
+    if (e.target.id === 'pick' || e.target.closest('#pick')) { e.preventDefault(); }
+    $('fileInput').click();
+  });
+  $('fileInput').addEventListener('change', function (e) {
+    handleFiles(e.target.files);
+    e.target.value = '';
+  });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    $('dz').addEventListener(ev, function (e) { e.preventDefault(); $('dz').classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    $('dz').addEventListener(ev, function (e) { e.preventDefault(); if (ev === 'dragleave' && e.target !== $('dz')) return; $('dz').classList.remove('over'); });
+  });
+  $('dz').addEventListener('drop', function (e) {
+    if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+  });
+  document.addEventListener('dragover', function (e) { e.preventDefault(); });
+  document.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  document.querySelectorAll('.tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var tab = btn.dataset.tab;
+      $('view-upload').hidden = tab !== 'upload';
+      $('view-shelf').hidden = tab !== 'shelf';
+      if (tab === 'shelf') loadShelf();
+    });
+  });
+  $('btnReload').addEventListener('click', reloadShelf);
+  $('showSdr').addEventListener('change', loadShelf);
+
+  $('btnCancelAll').addEventListener('click', function () {
+    up.items.forEach(function (i) {
+      if (i.status === 'pending') { i.set('cancel', '已取消'); i.strip(); }
+    });
+    if (up.active && up.active.abort) up.active.abort();
+    updateHead();
+  });
+  $('btnClearDone').addEventListener('click', function () {
+    up.items = up.items.filter(function (i) {
+      if (i.status === 'ok' || i.status === 'err' || i.status === 'cancel') { i.el.remove(); return false; }
+      return true;
+    });
+    updateHead();
+  });
+
+  /* ---------- 启动 ---------- */
+  loadConfig().then(function (cfg) {
+    if (cfg && cfg.configured) testConnection();
+    else { setStatus('', '未连接'); openModal(); }
+  });
+})();
+</script>
+</body>
+</html>
