@@ -16,3 +16,7 @@ detached-proof.txt
 # 系统杂项
 .DS_Store
 Thumbs.db
+
+# 截图脚本的临时工作区与营销素材（不进仓库）
+.shots-tmp/
+marketing/

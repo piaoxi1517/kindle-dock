@@ -20,7 +20,8 @@ const IS_SEA = Boolean(seaMod && typeof seaMod.isSea === 'function' && seaMod.is
 
 const ROOT = IS_SEA ? path.dirname(process.execPath) : __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
-const DATA_DIR = path.join(ROOT, 'data');
+// 允许用 DATA_DIR 指定配置目录（多实例调试 / 自动化测试时避免污染真实配置）
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT, 'data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const START_PORT = Number(process.env.PORT || 8765);
 const BIND = process.env.HOST || '127.0.0.1';

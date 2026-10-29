@@ -13,6 +13,7 @@
     --radius:14px;
   }
   *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
   html,body{height:100%;}
   body{
     margin:0; background:var(--bg); color:var(--ink);
@@ -182,7 +183,7 @@
   }
   .field textarea{height:88px; padding:8px 10px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:11px; line-height:1.5;}
   .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.1);}
-  .grid2{display:grid; grid-template-columns:1fr 110px; gap:10px;}
+  .grid2{display:grid; grid-template-columns:1fr 142px; gap:10px;}
   .result{
     font-size:12px; padding:10px 12px; border-radius:8px; display:none;
     white-space:pre-wrap; line-height:1.55;
@@ -531,7 +532,7 @@
         var d = {};
         try { d = JSON.parse(xhr.responseText); } catch (e) {}
         if (d.ok) {
-          item.set('ok', '已完成', fmtSize(d.size) + ' · ' + (d.ms / 1000).toFixed(1) + 's');
+          item.set('ok', '已完成', fmtSize(d.size) + (d.ms >= 100 ? ' · ' + (d.ms / 1000).toFixed(1) + 's' : ''));
           item.el.querySelector('.bar i').style.width = '100%';
         } else if (d.aborted) {
           item.set('cancel', '已取消', '设备上的残缺文件已清理');
