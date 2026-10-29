@@ -174,14 +174,14 @@ async function main() {
 }
 
 function buildCover() {
-  const shot = 'file:///' + path.join(OUT, '01-upload.png').replace(/\\/g, '/');
+  const shot = 'file:///' + path.join(OUT, '02-queue.png').replace(/\\/g, '/');
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{
     width:1080px;height:1440px;background:#f7f6f3;overflow:hidden;
     font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:#1c1917;
-    display:flex;flex-direction:column;padding:72px 64px 56px;position:relative;
+    display:flex;flex-direction:column;padding:72px 64px 64px;position:relative;
   }
   .tagline{font-size:26px;color:#8a8578;letter-spacing:2px;margin-bottom:26px;}
   h1{font-size:82px;line-height:1.24;font-weight:800;letter-spacing:-1px;}
@@ -192,7 +192,7 @@ function buildCover() {
     box-shadow:0 24px 60px rgba(28,25,23,.16),0 0 0 1px rgba(28,25,23,.07);
     width:952px;
   }
-  .shot img{width:100%;display:block;height:474px;object-fit:cover;object-position:top;}
+  .shot img{width:100%;display:block;}
   .steps{display:flex;align-items:center;gap:16px;margin-top:42px;}
   .step{
     flex:1;background:#fff;border:1px solid #e6e2da;border-radius:16px;
@@ -200,14 +200,10 @@ function buildCover() {
   }
   .step b{display:block;font-size:19px;color:#a8a29e;font-weight:500;margin-bottom:8px;letter-spacing:1px;}
   .arrow{color:#c9c3b6;font-size:30px;}
-  .chips{display:flex;gap:14px;margin-top:auto;padding-top:34px;}
+  .chips{display:flex;gap:14px;margin-top:44px;}
   .chip{
     font-size:25px;padding:14px 26px;border-radius:999px;background:#fff;
     border:1px solid #e0ddd6;color:#44403c;
-  }
-  .repo{
-    margin-top:22px;font-size:23px;color:#a8a29e;text-align:right;
-    font-family:ui-monospace,Consolas,monospace;
   }
 </style></head><body>
   <div class="tagline">越狱 KINDLE + KOREADER 玩家向</div>
@@ -226,7 +222,6 @@ function buildCover() {
     <div class="chip">免装客户端</div>
     <div class="chip">单文件 exe</div>
   </div>
-  <div class="repo">github.com/piaoxi1517/kindle-dock</div>
 </body></html>`;
 }
 
